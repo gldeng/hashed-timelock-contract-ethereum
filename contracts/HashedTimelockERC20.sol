@@ -48,49 +48,6 @@ contract HashedTimelockERC20 {
         bytes32 preimage;
     }
 
-    modifier tokensTransferable(address _token, address _sender, uint256 _amount) {
-        require(_amount > 0, "token amount must be > 0");
-        require(
-            ERC20(_token).allowance(_sender, address(this)) >= _amount,
-            "token allowance must be >= amount"
-        );
-        _;
-    }
-    modifier futureTimelock(uint256 _time) {
-        // only requirement is the timelock time is after the last blocktime (now).
-        // probably want something a bit further in the future then this.
-        // but this is still a useful sanity check:
-        require(_time > now, "timelock time must be in the future");
-        _;
-    }
-    modifier contractExists(bytes32 _contractId) {
-        require(haveContract(_contractId), "contractId does not exist");
-        _;
-    }
-    modifier hashlockMatches(bytes32 _contractId, bytes32 _x) {
-        require(
-            contracts[_contractId].hashlock == sha256(abi.encodePacked(_x)),
-            "hashlock hash does not match"
-        );
-        _;
-    }
-    modifier withdrawable(bytes32 _contractId) {
-        require(contracts[_contractId].receiver == msg.sender, "withdrawable: not receiver");
-        require(contracts[_contractId].withdrawn == false, "withdrawable: already withdrawn");
-        // This check needs to be added if claims are allowed after timeout. That is, if the following timelock check is commented out
-        require(contracts[_contractId].refunded == false, "withdrawable: already refunded");
-        // if we want to disallow claim to be made after the timeout, uncomment the following line
-        // require(contracts[_contractId].timelock > now, "withdrawable: timelock time must be in the future");
-        _;
-    }
-    modifier refundable(bytes32 _contractId) {
-        require(contracts[_contractId].sender == msg.sender, "refundable: not sender");
-        require(contracts[_contractId].refunded == false, "refundable: already refunded");
-        require(contracts[_contractId].withdrawn == false, "refundable: already withdrawn");
-        require(contracts[_contractId].timelock <= now, "refundable: timelock not yet passed");
-        _;
-    }
-
     mapping (bytes32 => LockContract) contracts;
 
     /**
@@ -117,52 +74,9 @@ contract HashedTimelockERC20 {
         uint256 _amount
     )
         external
-        tokensTransferable(_tokenContract, msg.sender, _amount)
-        futureTimelock(_timelock)
         returns (bytes32 contractId)
     {
-        contractId = sha256(
-            abi.encodePacked(
-                msg.sender,
-                _receiver,
-                _tokenContract,
-                _amount,
-                _hashlock,
-                _timelock
-            )
-        );
-
-        // Reject if a contract already exists with the same parameters. The
-        // sender must change one of these parameters (ideally providing a
-        // different _hashlock).
-        if (haveContract(contractId))
-            revert("Contract already exists");
-
-        // This contract becomes the temporary owner of the tokens
-        if (!ERC20(_tokenContract).transferFrom(msg.sender, address(this), _amount))
-            revert("transferFrom sender to this failed");
-
-        contracts[contractId] = LockContract(
-            msg.sender,
-            _receiver,
-            _tokenContract,
-            _amount,
-            _hashlock,
-            _timelock,
-            false,
-            false,
-            0x0
-        );
-
-        emit HTLCERC20New(
-            contractId,
-            msg.sender,
-            _receiver,
-            _tokenContract,
-            _amount,
-            _hashlock,
-            _timelock
-        );
+        // TODO: Implement this function
     }
 
     /**
@@ -175,16 +89,9 @@ contract HashedTimelockERC20 {
      */
     function withdraw(bytes32 _contractId, bytes32 _preimage)
         external
-        contractExists(_contractId)
-        hashlockMatches(_contractId, _preimage)
-        withdrawable(_contractId)
         returns (bool)
     {
-        LockContract storage c = contracts[_contractId];
-        c.preimage = _preimage;
-        c.withdrawn = true;
-        ERC20(c.tokenContract).transfer(c.receiver, c.amount);
-        emit HTLCERC20Withdraw(_contractId);
+        // TODO: Implement this function
         return true;
     }
 
@@ -197,14 +104,9 @@ contract HashedTimelockERC20 {
      */
     function refund(bytes32 _contractId)
         external
-        contractExists(_contractId)
-        refundable(_contractId)
         returns (bool)
     {
-        LockContract storage c = contracts[_contractId];
-        c.refunded = true;
-        ERC20(c.tokenContract).transfer(c.sender, c.amount);
-        emit HTLCERC20Refund(_contractId);
+        // TODO: Implement this function
         return true;
     }
 
